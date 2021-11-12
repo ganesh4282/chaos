@@ -33,29 +33,26 @@ pipeline {
                     CPU_Util_Length_Third = configProperties['CPU_Util_Length_Third']
                     CPU_Util_Percentage_Third = configProperties['CPU_Util_Percentage_Third']
                     Shutdown_Delay = configProperties['Shutdown_Delay']
-
-                    echo "Attack Type: ${AttackType}"
                 }
             }
         }
         stage ('Getting UID Information') {
             agent any
             steps {
-                echo "Attack Type: ${AttackType}"
-//                script {
-//                    DeploymentUID = sh (
- //                       script:  "curl -s 'https://api.gremlin.com/v1/kubernetes/targets?teamId=${GREMLIN_TEAM_ID}' -H 'Authorization: Key ${GREMLIN_API_KEY}' -H 'accept: application/json' | /usr/bin/jq -r '.[].objects[] | select(.clusterId==\"$ClusterName\") | select(.namespace==\"$Namespace\") | select(.kind==\"DEPLOYMENT\") | select (.name==\"$TargetDeployment\")| .uid'",
-//                        returnStdout: true
-//                        ).trim()
-//                    echo "*****************************************************************"                        
-//                    echo "Deployment UID is $DeploymentUID"
- //                   echo "*****************************************************************"                    
-//                }
+                script {
+                    DeploymentUID = sh (
+                        script:  "curl -s 'https://api.gremlin.com/v1/kubernetes/targets?teamId=${GREMLIN_TEAM_ID}' -H 'Authorization: Key ${GREMLIN_API_KEY}' -H 'accept: application/json' | /usr/bin/jq -r '.[].objects[] | select(.clusterId==\"${ClusterName}\") | select(.namespace==\"${Namespace}\") | select(.kind==\"DEPLOYMENT\") | select (.name==\"${DeploymentName}\")| .uid'",
+                        returnStdout: true
+                        ).trim()
+                    echo "*****************************************************************"                        
+                    echo "Deployment UID is $DeploymentUID"
+                    echo "*****************************************************************"                    
+                }
             }
         }        
         stage('Creating Chaos Latency Scenarios') {
             when {
-                    expression { params.AttackType == 'Latency' && parms.Infrastructure == 'Kubernetes' }
+                    expression { ${AttackType} == 'Latency' && ${Infrastructure} == 'Kubernetes' }
                 }
             agent any
                 steps {
