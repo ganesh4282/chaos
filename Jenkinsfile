@@ -53,12 +53,7 @@ pipeline {
         }        
         stage('Creating Chaos Latency Scenarios') {
             when {
-                    expression { 
-                        allOf {
-                            AttackType == 'Latency'  
-                            Infrastructure == 'Kubernetes' 
-                        }
-                    }
+                    expression { AttackType == 'Latency' }
                }
             agent any
                 steps {
@@ -77,12 +72,7 @@ pipeline {
         }
         stage('Creating Chaos PacketLoss Scenarios') {
             when {
-                    expression { 
-                        allOf {
-                            AttackType == 'Packetloss'  
-                            Infrastructure == 'Kubernetes' 
-                        }
-                    }
+                    expression { AttackType == 'Packetloss' }
                }
             agent any
             steps {
@@ -118,12 +108,7 @@ pipeline {
         }        
         stage('Creating Chaos Shutdown Scenarios') {
             when {
-                    expression { 
-                        allOf {
-                            AttackType == 'Shutdown'  
-                            Infrastructure == 'Kubernetes' 
-                        }
-                    }
+                    expression { AttackType == 'Shutdown' }
                }
             agent any
             steps {
