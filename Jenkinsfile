@@ -48,7 +48,7 @@ stages {
 //                    echo "*****************************************************************"                        
 //                    echo "Deployment UID is $DeploymentUID"
  //                   echo "*****************************************************************"                    
-                }
+//                }
             }
         }        
         stage('Creating Chaos Latency Scenarios') {
