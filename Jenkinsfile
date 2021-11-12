@@ -33,6 +33,8 @@ stages {
                     CPU_Util_Length_Third = configProperties['CPU_Util_Length_Third']
                     CPU_Util_Percentage_Third = configProperties['CPU_Util_Percentage_Third']
                     Shutdown_Delay = configProperties['Shutdown_Delay']
+
+                    echo "Attack Type: ${AttackType}"
                 }
             }
         }
