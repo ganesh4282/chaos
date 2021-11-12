@@ -57,6 +57,7 @@ pipeline {
                             AttackType == 'Latency'  
                             Infrastructure == 'Kubernetes' 
                         }
+                    }
                }
             agent any
                 steps {
