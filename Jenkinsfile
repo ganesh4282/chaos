@@ -1,18 +1,158 @@
-node {
-
-   def props = readProperties file: "./test.properties"
-
-   def distribution= props['distribution_property'] 
-   def tag= props['tag_property']
-
-   properties([
-      parameters([ 
-         string(name: 'distribution', defaultValue: "$distribution", description: 'apt distribution'),
-         string(name: 'tag', defaultValue: "$tag", description: 'just a tag'),
-         choice(name: 'gradle_log_level', defaultValue: "$gradle_log_level", choices: ['quiet', 'warn', 'info', 'debug'].join('\n'), description: 'quiet || warn || info || debug')
-      ])
-   ])
-
-      echo "distribution: ${params.distribution}"
-      echo "tag: ${params.tag}"
+pipeline {
+    agent none
+    environment {
+        GREMLIN_API_KEY = credentials('gremlin-api-key')
+        GREMLIN_TEAM_ID = credentials('gremlin-team-id')
+    }
+stages {
+        stage('Setup Variables') {
+            steps {
+                script {
+                    configProperties = readProperties file: './config.properties'
+                    AttackType = configProperties['AttackType']
+                    ClusterName = configProperties['ClusterName']
+                    Namespace = configProperties['Namespace']
+                    DeploymentName = configProperties['DeploymentName']
+                    DeploymentPort = configProperties['DeploymentPort']
+                    Latency_Delay_First = configProperties['Latency_Delay_First']
+                    Latency_Length_First = configProperties['Latency_Length_First']
+                    Latency_Delay_Second = configProperties['Latency_Delay_Second']
+                    Latency_Length_Second = configProperties['Latency_Length_Second']
+                    Latency_Delay_Third = configProperties['Latency_Delay_Third']
+                    Latency_Length_Third = configProperties['Latency_Length_Third']
+                    Packetloss_Length_First = configProperties['Packetloss_Length_First']
+                    Packetloss_Percentage_First = configProperties['Packetloss_Percentage_First']
+                    Packetloss_Length_Second = configProperties['Packetloss_Length_Second']
+                    Packetloss_Percentage_Second = configProperties['Packetloss_Percentage_Second']
+                    Packetloss_Length_Third = configProperties['Packetloss_Length_Third']
+                    Packetloss_Percentage_Third = configProperties['Packetloss_Percentage_Third']
+                    CPU_Util_Length_First = configProperties['CPU_Util_Length_First']
+                    CPU_Util_Percentage_First = configProperties['CPU_Util_Percentage_First']
+                    CPU_Util_Length_Second = configProperties['CPU_Util_Length_Second']
+                    CPU_Util_Percentage_Second = configProperties['CPU_Util_Percentage_Second']
+                    CPU_Util_Length_Third = configProperties['CPU_Util_Length_Third']
+                    CPU_Util_Percentage_Third = configProperties['CPU_Util_Percentage_Third']
+                    Shutdown_Delay = configProperties['Shutdown_Delay']
+                }
+            }
+        }
+        stage ('Getting UID Information') {
+            agent any
+            steps {
+                script {
+                    DeploymentUID = sh (
+                        script:  "curl -s 'https://api.gremlin.com/v1/kubernetes/targets?teamId=${GREMLIN_TEAM_ID}' -H 'Authorization: Key ${GREMLIN_API_KEY}' -H 'accept: application/json' | /usr/bin/jq -r '.[].objects[] | select(.clusterId==\"$ClusterName\") | select(.namespace==\"$Namespace\") | select(.kind==\"DEPLOYMENT\") | select (.name==\"$TargetDeployment\")| .uid'",
+                        returnStdout: true
+                        ).trim()
+                    echo "*****************************************************************"                        
+                    echo "Deployment UID is $DeploymentUID"
+                    echo "*****************************************************************"                    
+                }
+            }
+        }        
+        stage('Creating Chaos Latency Scenarios') {
+            when {
+                    expression { params.AttackType == 'Latency' && parms.Infrastructure == 'Kubernetes' }
+                }
+            agent any
+                steps {
+                    script {
+                    if (params.DeploymentPort != '' && params.Latency_Delay_First != "" && Latency_Delay_Second != "" && Latency_Delay_Third != "" && Latency_Length_First != "" && Latency_Length_Second != "" && Latency_Length_Third != "")  {                           
+                        scenario_id = sh (
+                        script: "curl -s 'https://api.gremlin.com/v1/scenarios?teamId=${GREMLIN_TEAM_ID}' -H 'Content-Type: application/json;charset=utf-8' -H 'Authorization: Key ${GREMLIN_API_KEY}' -d '{\"name\":\"$ClusterName-$AttackType-$DeploymentName\" ,\"recommended_scenario_id\":\"\",\"graph\":{\"nodes\":{\"0\":{\"target_definition\":{\"target_type\":\"Kubernetes\" ,\"strategy_type\":\"Random\" ,\"strategy\":{\"attrs\":{} ,\"type\":\"RandomPercent\" ,\"percentage\":\"100\"},\"k8s_objects\":[{\"cluster_id\":\"$ClusterName\" ,\"uid\":\"$DeploymentUID\" ,\"namespace\":\"$Namespace\" ,\"name\":\"$DeploymentName\" ,\"kind\":\"DEPLOYMENT\" ,\"labels\":{} ,\"annotations\":{} ,\"available_containers\":[] ,\"target_type\":\"Kubernetes\"}] ,\"containerSelection\":{\"selectionType\":\"ANY\" ,\"containerNames\":[]}} ,\"impact_definition\":{\"infra_command_type\":\"latency\" ,\"infra_command_args\":{\"cli_args\":[\"latency\" ,\"-l\" ,\"$Latency_Length_First\" ,\"-m\" ,\"$Latency_Delay_First\" ,\"-h\" ,\"^api.gremlin.com\" ,\"-p\" ,\"^53\", \"-s\", \"$DeploymentPort\"] ,\"providers\":[] ,\"type\":\"latency\"}} ,\"type\":\"InfraAttack\" ,\"id\":\"0\" ,\"next\":\"1\"} ,\"1\":{\"type\":\"Delay\" ,\"delay\":5 ,\"id\":\"1\" ,\"next\":\"2\"} ,\"2\":{\"target_definition\":{\"target_type\":\"Kubernetes\" ,\"strategy_type\":\"Random\" ,\"strategy\":{\"attrs\":{} ,\"type\":\"RandomPercent\" ,\"percentage\":\"100\"} ,\"k8s_objects\":[{\"cluster_id\":\"$ClusterName\" ,\"uid\":\"$DeploymentUID\" ,\"namespace\":\"$Namespace\" ,\"name\":\"$DeploymentName\" ,\"kind\":\"DEPLOYMENT\" ,\"labels\":{} ,\"annotations\":{} ,\"available_containers\":[] ,\"target_type\":\"Kubernetes\"}] ,\"containerSelection\":{\"selectionType\":\"ANY\" ,\"containerNames\":[]}} ,\"impact_definition\":{\"infra_command_type\":\"latency\" ,\"infra_command_args\":{\"cli_args\":[\"latency\" ,\"-l\" ,\"$Latency_Length_Second\" ,\"-m\" ,\"$Latency_Delay_Second\" ,\"-h\" ,\"^api.gremlin.com\" ,\"-p\" ,\"^53\", \"-s\", \"$DeploymentPort\"] ,\"providers\":[] ,\"type\":\"latency\"}} ,\"type\":\"InfraAttack\" ,\"id\":\"2\" ,\"next\":\"3\"} ,\"3\":{\"type\":\"Delay\" ,\"delay\":5 ,\"id\":\"3\" ,\"next\":\"4\"} ,\"4\":{\"target_definition\":{\"target_type\":\"Kubernetes\" ,\"strategy_type\":\"Random\" ,\"strategy\":{\"attrs\":{} ,\"type\":\"RandomPercent\" ,\"percentage\":\"100\"} ,\"k8s_objects\":[{\"cluster_id\":\"$ClusterName\" ,\"uid\":\"$DeploymentUID\" ,\"namespace\":\"$Namespace\" ,\"name\":\"$DeploymentName\" ,\"kind\":\"DEPLOYMENT\" ,\"labels\":{} ,\"annotations\":{} ,\"available_containers\":[] ,\"target_type\":\"Kubernetes\"}] ,\"containerSelection\":{\"selectionType\":\"ANY\" ,\"containerNames\":[]}} ,\"impact_definition\":{\"infra_command_type\":\"latency\" ,\"infra_command_args\":{\"cli_args\":[\"latency\" ,\"-l\" ,\"$Latency_Length_First\" ,\"-m\" ,\"$Latency_Delay_Third\" ,\"-h\" ,\"^api.gremlin.com\" ,\"-p\" ,\"^53\", \"-s\", \"$DeploymentPort\"] ,\"providers\":[] ,\"type\":\"latency\"}} ,\"type\":\"InfraAttack\" ,\"id\":\"4\"}} ,\"start_id\":\"0\"}}' --compressed",
+                        returnStdout: true
+                        ).trim()
+                        echo "********************************************************************************************************"                        
+                        echo "Scenario id for this $AttackType pipeline is ${scenario_id}"                        
+                        echo "View scenario details at https://app.gremlin.com/scenarios/detail/${scenario_id}"
+                        echo "********************************************************************************************************"                     
+                    }
+                    else
+                    {
+                        echo "**************************************************"
+                        echo "[Error] $AttackType related paramaters are missing"
+                        echo "**************************************************"
+                    }                        
+                }
+            }
+        }
+        stage('Creating Chaos PacketLoss Scenarios') {
+            when {
+                expression { params.AttackType == 'Packetloss'  && parms.Infrastructure == 'Kubernetes' }
+            }
+            agent any
+            steps {
+                script {
+                    if (params.DeploymentPort != '' && params.Packetloss_Length_First != "" && Packetloss_Length_Second != "" && Packetloss_Length_Third != "" && Packetloss_Percentage_First != "" && Packetloss_Percentage_Second != "" && Packetloss_Percentage_Third != "")  {                             
+                    scenario_id = sh (
+                        script: "curl -s 'https://api.gremlin.com/v1/scenarios?teamId=${GREMLIN_TEAM_ID}' -H 'Content-Type: application/json;charset=utf-8' -H 'Authorization: Key ${GREMLIN_API_KEY}' -d '{\"name\":\"$ClusterName-$AttackType-$DeploymentName\" ,\"recommended_scenario_id\":\"\" ,\"graph\":{\"nodes\":{\"0\":{\"target_definition\":{\"target_type\":\"Kubernetes\" ,\"strategy_type\":\"Random\" ,\"strategy\":{\"attrs\":{} ,\"type\":\"RandomPercent\" ,\"percentage\":100} ,\"k8s_objects\":[{\"cluster_id\":\"$ClusterName\" ,\"uid\":\"$DeploymentUID\" ,\"namespace\":\"$Namespace\" ,\"name\":\"$DeploymentName\" ,\"kind\":\"DEPLOYMENT\" ,\"labels\":{} ,\"annotations\":{} ,\"available_containers\":[] ,\"target_type\":\"Kubernetes\"}] ,\"containerSelection\":{\"selectionType\":\"ANY\" ,\"containerNames\":[]}} ,\"impact_definition\":{\"infra_command_type\":\"packet_loss\" ,\"infra_command_args\":{\"cli_args\":[\"packet_loss\" ,\"-l\" ,\"$Packetloss_Length_First\" ,\"-h\" ,\"^api.gremlin.com\" ,\"-p\" ,\"^53\" ,\"-r\" ,\"$Packetloss_Percentage_First\" ,\"-s\", \"$DeploymentPort\"] ,\"providers\":[] ,\"type\":\"packet_loss\"}} ,\"type\":\"InfraAttack\" ,\"id\":\"0\" ,\"next\":\"1\"} ,\"1\":{\"type\":\"Delay\" ,\"delay\":5 ,\"id\":\"1\" ,\"next\":\"2\"} ,\"2\":{\"target_definition\":{\"target_type\":\"Kubernetes\" ,\"strategy_type\":\"Random\" ,\"strategy\":{\"attrs\":{} ,\"type\":\"RandomPercent\" ,\"percentage\":100} ,\"k8s_objects\":[{\"cluster_id\":\"$ClusterName\" ,\"uid\":\"$DeploymentUID\" ,\"namespace\":\"$Namespace\" ,\"name\":\"$DeploymentName\" ,\"kind\":\"DEPLOYMENT\" ,\"labels\":{} ,\"annotations\":{} ,\"available_containers\":[] ,\"target_type\":\"Kubernetes\"}] ,\"containerSelection\":{\"selectionType\":\"ANY\" ,\"containerNames\":[]}} ,\"impact_definition\":{\"infra_command_type\":\"packet_loss\" ,\"infra_command_args\":{\"cli_args\":[\"packet_loss\" ,\"-l\" ,\"$Packetloss_Length_Second\" ,\"-h\" ,\"^api.gremlin.com\" ,\"-p\" ,\"^53\" ,\"-r\" ,\"$Packetloss_Percentage_Second\" ,\"-s\", \"$DeploymentPort\"] ,\"providers\":[] ,\"type\":\"packet_loss\"}} ,\"type\":\"InfraAttack\" ,\"id\":\"2\" ,\"next\":\"3\"} ,\"3\":{\"type\":\"Delay\" ,\"delay\":5 ,\"id\":\"3\" ,\"next\":\"4\"} ,\"4\":{\"target_definition\":{\"target_type\":\"Kubernetes\" ,\"strategy_type\":\"Random\" ,\"strategy\":{\"attrs\":{} ,\"type\":\"RandomPercent\" ,\"percentage\":100} ,\"k8s_objects\":[{\"cluster_id\":\"$ClusterName\" ,\"uid\":\"$DeploymentUID\" ,\"namespace\":\"$Namespace\" ,\"name\":\"$DeploymentName\" ,\"kind\":\"DEPLOYMENT\" ,\"labels\":{} ,\"annotations\":{} ,\"available_containers\":[] ,\"target_type\":\"Kubernetes\"}] ,\"containerSelection\":{\"selectionType\":\"ANY\" ,\"containerNames\":[]}} ,\"impact_definition\":{\"infra_command_type\":\"packet_loss\" ,\"infra_command_args\":{\"cli_args\":[\"packet_loss\" ,\"-l\" ,\"$Packetloss_Length_Third\" ,\"-h\" ,\"^api.gremlin.com\" ,\"-p\" ,\"^53\" ,\"-r\" ,\"$Packetloss_Percentage_Third\" ,\"-s\", \"$DeploymentPort\"] ,\"providers\":[] ,\"type\":\"packet_loss\"}} ,\"type\":\"InfraAttack\" ,\"id\":\"4\"}} ,\"start_id\":\"0\"}}' --compressed",
+                        returnStdout: true
+                        ).trim()
+                        echo "********************************************************************************************************"                        
+                        echo "Scenario id for this $AttackType pipeline is ${scenario_id}"                        
+                        echo "View scenario details at https://app.gremlin.com/scenarios/detail/${scenario_id}"
+                        echo "********************************************************************************************************"  
+                    }
+                    else
+                    {
+                        echo "**************************************************"
+                        echo "[Error] $AttackType related paramaters are missing"
+                        echo "**************************************************"
+                    }                    
+                }
+            }
+        }
+        stage('Creating Chaos CPU Utilization Scenarios') {
+            when {
+                expression { params.AttackType == 'CPU_Utilization'  && parms.Infrastructure == 'Kubernetes' }
+            }
+            agent any
+            steps {
+                script {
+                    if (params.CPU_Util_Length_First != "" && params.CPU_Util_Length_second != "" && params.CPU_Util_Length_Third != "" && CPU_Util_Percentage_First != "" && CPU_Util_Percentage_Second != "" && CPU_Util_Percentage_Third != "")  {                      
+                    scenario_id = sh (
+                        script: "curl -s 'https://api.gremlin.com/v1/scenarios?teamId=${GREMLIN_TEAM_ID}' -H 'Content-Type: application/json;charset=utf-8' -H 'Authorization: Key ${GREMLIN_API_KEY}' -d '{\"name\":\"$ClusterName-$AttackType-$DeploymentName\" ,\"recommended_scenario_id\":\"\" ,\"graph\":{\"nodes\":{\"0\":{\"target_definition\":{\"target_type\":\"Kubernetes\" ,\"strategy_type\":\"Random\" ,\"strategy\":{\"attrs\":{} ,\"type\":\"RandomPercent\" ,\"percentage\":100} ,\"k8s_objects\":[{\"cluster_id\":\"$ClusterName\" ,\"uid\":\"$DeploymentUID\" ,\"namespace\":\"$Namespace\" ,\"name\":\"$DeploymentName\" ,\"kind\":\"DEPLOYMENT\" ,\"labels\":{} ,\"annotations\":{} ,\"available_containers\":[] ,\"target_type\":\"Kubernetes\"}] ,\"containerSelection\":{\"selectionType\":\"ALL\" ,\"containerNames\":[]}} ,\"impact_definition\":{\"infra_command_type\":\"cpu\" ,\"infra_command_args\":{\"cli_args\":[\"cpu\" ,\"-l\" ,\"$CPU_Util_Length_First\" ,\"-p\" ,\"$CPU_Util_Percentage_First\" ,\"-a\"] ,\"type\":\"cpu\"}} ,\"type\":\"InfraAttack\" ,\"id\":\"0\" ,\"next\":\"1\"} ,\"1\":{\"type\":\"Delay\" ,\"delay\":5 ,\"id\":\"1\" ,\"next\":\"2\"} ,\"2\":{\"target_definition\":{\"target_type\":\"Kubernetes\" ,\"strategy_type\":\"Random\" ,\"strategy\":{\"attrs\":{} ,\"type\":\"RandomPercent\" ,\"percentage\":100} ,\"k8s_objects\":[{\"cluster_id\":\"$ClusterName\" ,\"uid\":\"$DeploymentUID\" ,\"namespace\":\"$Namespace\" ,\"name\":\"$DeploymentName\" ,\"kind\":\"DEPLOYMENT\" ,\"labels\":{} ,\"annotations\":{} ,\"available_containers\":[] ,\"target_type\":\"Kubernetes\"}] ,\"containerSelection\":{\"selectionType\":\"ALL\" ,\"containerNames\":[]}} ,\"impact_definition\":{\"infra_command_type\":\"cpu\" ,\"infra_command_args\":{\"cli_args\":[\"cpu\" ,\"-l\" ,\"$CPU_Util_Length_Second\" ,\"-p\" ,\"$CPU_Util_Percentage_Second\" ,\"-a\"] ,\"providers\":[] ,\"type\":\"cpu\"}} ,\"type\":\"InfraAttack\" ,\"id\":\"2\" ,\"next\":\"3\"} ,\"3\":{\"type\":\"Delay\" ,\"delay\":5 ,\"id\":\"3\" ,\"next\":\"4\"} ,\"4\":{\"target_definition\":{\"target_type\":\"Kubernetes\" ,\"strategy_type\":\"Random\" ,\"strategy\":{\"attrs\":{} ,\"type\":\"RandomPercent\" ,\"percentage\":100} ,\"k8s_objects\":[{\"cluster_id\":\"$ClusterName\" ,\"uid\":\"$DeploymentUID\" ,\"namespace\":\"$Namespace\" ,\"name\":\"$DeploymentName\" ,\"kind\":\"DEPLOYMENT\" ,\"labels\":{} ,\"annotations\":{} ,\"available_containers\":[] ,\"target_type\":\"Kubernetes\"}] ,\"containerSelection\":{\"selectionType\":\"ALL\" ,\"containerNames\":[]}} ,\"impact_definition\":{\"infra_command_type\":\"cpu\" ,\"infra_command_args\":{\"cli_args\":[\"cpu\" ,\"-l\" ,\"$CPU_Util_Length_Third\" ,\"-p\" ,\"$CPU_Util_Percentage_Third\" ,\"-a\"] ,\"providers\":[] ,\"type\":\"cpu\"}} ,\"type\":\"InfraAttack\" ,\"id\":\"4\"}} ,\"start_id\":\"0\"}}' --compressed",   
+                        returnStdout: true
+                        ).trim()
+                        echo "********************************************************************************************************"                        
+                        echo "Scenario id for this $AttackType pipeline is ${scenario_id}"                        
+                        echo "View scenario details at https://app.gremlin.com/scenarios/detail/${scenario_id}"
+                        echo "********************************************************************************************************"  
+                    }
+                    else
+                    {
+                        echo "**************************************************"
+                        echo "[Error] $AttackType related paramaters are missing"
+                        echo "**************************************************"
+                    }                  
+                }
+            }
+        }        
+        stage('Creating Chaos Shutdown Scenarios') {
+            when {
+                expression { params.AttackType == 'Shutdown' && parms.Infrastructure == 'Kubernetes' }
+            }
+            agent any
+            steps {
+                script {
+                    if (params.Shutdown_Delay != "")  {                
+                        scenario_id = sh (
+                            script: "curl -s 'https://api.gremlin.com/v1/scenarios?teamId=${GREMLIN_TEAM_ID}' -H 'Content-Type: application/json;charset=utf-8' -H 'Authorization: Key ${GREMLIN_API_KEY}' -d '{\"name\":\"$ClusterName-$AttackType-$DeploymentName\",\"recommended_scenario_id\":\"\",\"graph\":{\"nodes\":{\"0\":{\"target_definition\":{\"target_type\":\"Kubernetes\" ,\"strategy_type\":\"Random\" ,\"strategy\":{\"attrs\":{} ,\"type\":\"RandomPercent\" ,\"percentage\":\"100\"} ,\"k8s_objects\":[{\"cluster_id\":\"$ClusterName\" ,\"uid\":\"$DeploymentUID\" ,\"namespace\":\"$Namespace\" ,\"name\":\"$DeploymentName\" ,\"kind\":\"DEPLOYMENT\" ,\"labels\":{} ,\"annotations\":{} ,\"available_containers\":[] ,\"target_type\":\"Kubernetes\"}] ,\"containerSelection\":{\"selectionType\":\"ALL\" ,\"containerNames\":[]}} ,\"impact_definition\":{\"infra_command_type\":\"shutdown\" ,\"infra_command_args\":{\"cli_args\":[\"shutdown\" ,\"-d\" ,\"$Shutdown_Delay\" ,\"-r\"] ,\"type\":\"shutdown\"}} ,\"type\":\"InfraAttack\" ,\"id\":\"0\"}} ,\"start_id\":\"0\"}}' --compressed",    
+                            returnStdout: true
+                            ).trim()
+                        echo "********************************************************************************************************"                        
+                        echo "Scenario id for this $AttackType pipeline is ${scenario_id}"                        
+                        echo "View scenario details at https://app.gremlin.com/scenarios/detail/${scenario_id}"
+                    echo "********************************************************************************************************"  
+                    }
+                    else
+                    {
+                        echo "**************************************************"
+                        echo "[Error] $AttackType related paramaters are missing"
+                        echo "**************************************************"
+                    }    
+                }
+            }
+        }
+    }
 }
