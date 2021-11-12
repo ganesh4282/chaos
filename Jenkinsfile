@@ -52,7 +52,7 @@ pipeline {
         }        
         stage('Creating Chaos Latency Scenarios') {
             when {
-                    expression { ${AttackType} == 'Latency' }
+                    expression { name: "AttackType", value "Latency" }
                }
             agent any
                 steps {
