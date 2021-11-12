@@ -39,14 +39,15 @@ stages {
         stage ('Getting UID Information') {
             agent any
             steps {
-                script {
-                    DeploymentUID = sh (
-                        script:  "curl -s 'https://api.gremlin.com/v1/kubernetes/targets?teamId=${GREMLIN_TEAM_ID}' -H 'Authorization: Key ${GREMLIN_API_KEY}' -H 'accept: application/json' | /usr/bin/jq -r '.[].objects[] | select(.clusterId==\"$ClusterName\") | select(.namespace==\"$Namespace\") | select(.kind==\"DEPLOYMENT\") | select (.name==\"$TargetDeployment\")| .uid'",
-                        returnStdout: true
-                        ).trim()
-                    echo "*****************************************************************"                        
-                    echo "Deployment UID is $DeploymentUID"
-                    echo "*****************************************************************"                    
+                echo "Attack Type: ${AttackType}"
+//                script {
+//                    DeploymentUID = sh (
+ //                       script:  "curl -s 'https://api.gremlin.com/v1/kubernetes/targets?teamId=${GREMLIN_TEAM_ID}' -H 'Authorization: Key ${GREMLIN_API_KEY}' -H 'accept: application/json' | /usr/bin/jq -r '.[].objects[] | select(.clusterId==\"$ClusterName\") | select(.namespace==\"$Namespace\") | select(.kind==\"DEPLOYMENT\") | select (.name==\"$TargetDeployment\")| .uid'",
+//                        returnStdout: true
+//                        ).trim()
+//                    echo "*****************************************************************"                        
+//                    echo "Deployment UID is $DeploymentUID"
+ //                   echo "*****************************************************************"                    
                 }
             }
         }        
