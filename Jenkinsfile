@@ -20,7 +20,7 @@ pipeline {
                     Latency_Length_Second = configProperties['Latency_Length_Second']
                     Latency_Delay_Third = configProperties['Latency_Delay_Third']
                     Latency_Length_Third = configProperties['Latency_Length_Third']
-                    Paketloss_Port  = configProperties['Paketloss_Port']
+                    Packetloss_Port  = configProperties['Paketloss_Port']
                     Packetloss_Length_First = configProperties['Packetloss_Length_First']
                     Packetloss_Percentage_First = configProperties['Packetloss_Percentage_First']
                     Packetloss_Length_Second = configProperties['Packetloss_Length_Second']
