@@ -51,11 +51,13 @@ pipeline {
             }
         }        
         stage('Creating Chaos Latency Scenarios') {
+//            when {
+//                    expression { $AttackType} == 'Latency' && ${Infrastructure} == 'Kubernetes' }
+ //               }
             agent any
                 steps {
                     script {
-                        if ( $AttackType == 'Latency' && $Infrastructure == 'Kubernetes')
-                        if ( $DeploymentPort != '' && $Latency_Delay_First != "" && $Latency_Delay_Second != "" && $Latency_Delay_Third != "" && $Latency_Length_First != "" && $Latency_Length_Second != "" && $Latency_Length_Third != "")  {                           
+ //                   if (params.DeploymentPort != '' && params.Latency_Delay_First != "" && Latency_Delay_Second != "" && Latency_Delay_Third != "" && Latency_Length_First != "" && Latency_Length_Second != "" && Latency_Length_Third != "")  {                           
                         scenario_id = sh (
                         script: "curl -s 'https://api.gremlin.com/v1/scenarios?teamId=${GREMLIN_TEAM_ID}' -H 'Content-Type: application/json;charset=utf-8' -H 'Authorization: Key ${GREMLIN_API_KEY}' -d '{\"name\":\"$ClusterName-$AttackType-$DeploymentName\" ,\"recommended_scenario_id\":\"\",\"graph\":{\"nodes\":{\"0\":{\"target_definition\":{\"target_type\":\"Kubernetes\" ,\"strategy_type\":\"Random\" ,\"strategy\":{\"attrs\":{} ,\"type\":\"RandomPercent\" ,\"percentage\":\"100\"},\"k8s_objects\":[{\"cluster_id\":\"$ClusterName\" ,\"uid\":\"$DeploymentUID\" ,\"namespace\":\"$Namespace\" ,\"name\":\"$DeploymentName\" ,\"kind\":\"DEPLOYMENT\" ,\"labels\":{} ,\"annotations\":{} ,\"available_containers\":[] ,\"target_type\":\"Kubernetes\"}] ,\"containerSelection\":{\"selectionType\":\"ANY\" ,\"containerNames\":[]}} ,\"impact_definition\":{\"infra_command_type\":\"latency\" ,\"infra_command_args\":{\"cli_args\":[\"latency\" ,\"-l\" ,\"$Latency_Length_First\" ,\"-m\" ,\"$Latency_Delay_First\" ,\"-h\" ,\"^api.gremlin.com\" ,\"-p\" ,\"^53\", \"-s\", \"$DeploymentPort\"] ,\"providers\":[] ,\"type\":\"latency\"}} ,\"type\":\"InfraAttack\" ,\"id\":\"0\" ,\"next\":\"1\"} ,\"1\":{\"type\":\"Delay\" ,\"delay\":5 ,\"id\":\"1\" ,\"next\":\"2\"} ,\"2\":{\"target_definition\":{\"target_type\":\"Kubernetes\" ,\"strategy_type\":\"Random\" ,\"strategy\":{\"attrs\":{} ,\"type\":\"RandomPercent\" ,\"percentage\":\"100\"} ,\"k8s_objects\":[{\"cluster_id\":\"$ClusterName\" ,\"uid\":\"$DeploymentUID\" ,\"namespace\":\"$Namespace\" ,\"name\":\"$DeploymentName\" ,\"kind\":\"DEPLOYMENT\" ,\"labels\":{} ,\"annotations\":{} ,\"available_containers\":[] ,\"target_type\":\"Kubernetes\"}] ,\"containerSelection\":{\"selectionType\":\"ANY\" ,\"containerNames\":[]}} ,\"impact_definition\":{\"infra_command_type\":\"latency\" ,\"infra_command_args\":{\"cli_args\":[\"latency\" ,\"-l\" ,\"$Latency_Length_Second\" ,\"-m\" ,\"$Latency_Delay_Second\" ,\"-h\" ,\"^api.gremlin.com\" ,\"-p\" ,\"^53\", \"-s\", \"$DeploymentPort\"] ,\"providers\":[] ,\"type\":\"latency\"}} ,\"type\":\"InfraAttack\" ,\"id\":\"2\" ,\"next\":\"3\"} ,\"3\":{\"type\":\"Delay\" ,\"delay\":5 ,\"id\":\"3\" ,\"next\":\"4\"} ,\"4\":{\"target_definition\":{\"target_type\":\"Kubernetes\" ,\"strategy_type\":\"Random\" ,\"strategy\":{\"attrs\":{} ,\"type\":\"RandomPercent\" ,\"percentage\":\"100\"} ,\"k8s_objects\":[{\"cluster_id\":\"$ClusterName\" ,\"uid\":\"$DeploymentUID\" ,\"namespace\":\"$Namespace\" ,\"name\":\"$DeploymentName\" ,\"kind\":\"DEPLOYMENT\" ,\"labels\":{} ,\"annotations\":{} ,\"available_containers\":[] ,\"target_type\":\"Kubernetes\"}] ,\"containerSelection\":{\"selectionType\":\"ANY\" ,\"containerNames\":[]}} ,\"impact_definition\":{\"infra_command_type\":\"latency\" ,\"infra_command_args\":{\"cli_args\":[\"latency\" ,\"-l\" ,\"$Latency_Length_First\" ,\"-m\" ,\"$Latency_Delay_Third\" ,\"-h\" ,\"^api.gremlin.com\" ,\"-p\" ,\"^53\", \"-s\", \"$DeploymentPort\"] ,\"providers\":[] ,\"type\":\"latency\"}} ,\"type\":\"InfraAttack\" ,\"id\":\"4\"}} ,\"start_id\":\"0\"}}' --compressed",
                         returnStdout: true
@@ -64,17 +66,13 @@ pipeline {
                         echo "Scenario id for this $AttackType pipeline is ${scenario_id}"                        
                         echo "View scenario details at https://app.gremlin.com/scenarios/detail/${scenario_id}"
                         echo "********************************************************************************************************"                     
-                    }
-                    else
-                    {
-                        echo "**************************************************"
-                        echo "[Error] $AttackType related paramaters are missing"
-                        echo "**************************************************"
-                    }   
-                    else 
-                    {
-                        echo "Skipping Latency Creation Stage"
-                    }                     
+   //                 }
+    //                else
+     //               {
+      //                  echo "**************************************************"
+      //                  echo "[Error] $AttackType related paramaters are missing"
+       //                 echo "**************************************************"
+       //             }                        
                 }
             }
         }
