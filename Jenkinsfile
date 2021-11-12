@@ -4,7 +4,7 @@ pipeline {
         GREMLIN_API_KEY = credentials('gremlin-api-key')
         GREMLIN_TEAM_ID = credentials('gremlin-team-id')
     }
-stages {
+    stages {
         stage('Setup Variables') {
             steps {
                 script {
