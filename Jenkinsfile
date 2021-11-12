@@ -52,8 +52,8 @@ pipeline {
         }        
         stage('Creating Chaos Latency Scenarios') {
             when {
-                    expression { ${AttackType} == 'Latency' && ${Infrastructure} == 'Kubernetes' }
-               }
+                    expression { ${AttackType} == 'Latency' }
+                }
             agent any
                 steps {
                     script {
