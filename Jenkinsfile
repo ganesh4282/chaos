@@ -100,12 +100,7 @@ pipeline {
         }
         stage('Creating Chaos CPU Utilization Scenarios') {
             when {
-                    expression { 
-                        allOf {
-                            AttackType == 'CPU_Utilization'  
-                            Infrastructure == 'Kubernetes' 
-                        }
-                    }
+                    expression { AttackType == 'CPU_Utilization' }
                }
             agent any
             steps {
