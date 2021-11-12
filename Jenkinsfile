@@ -1,5 +1,5 @@
 pipeline {
-    agent none
+    agent any
     environment {
         GREMLIN_API_KEY = credentials('gremlin-api-key')
         GREMLIN_TEAM_ID = credentials('gremlin-team-id')
