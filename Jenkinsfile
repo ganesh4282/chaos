@@ -132,7 +132,7 @@ pipeline {
                 ${env.JOB_NAME}:${env.BUILD_NUMBER}</a>"</p> 
                     <p><i>(Build log is attached.)</i></p>""", 
                     compressLog: true,
-                    replyTo: 'do-not-reply@fmr.com', 
+                    replyTo: 'do-not-reply@example.com', 
                     subject: "Status: ${currentBuild.result?:'SUCCESS'} - 
                     Job \'${env.JOB_NAME}:${env.BUILD_NUMBER}\'", 
                     to: '$EmailAddress'
