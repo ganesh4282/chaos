@@ -124,5 +124,19 @@ pipeline {
                 }
             }
         }
+        post { 
+            always { 
+                emailext attachLog: true, body:
+                """<p>EXECUTED: Job <b>\'${env.JOB_NAME}:${env.BUILD_NUMBER})\'
+                </b></p><p>View console output at "<a href="${env.BUILD_URL}"> 
+                ${env.JOB_NAME}:${env.BUILD_NUMBER}</a>"</p> 
+                    <p><i>(Build log is attached.)</i></p>""", 
+                    compressLog: true,
+                    replyTo: 'do-not-reply@fmr.com', 
+                    subject: "Status: ${currentBuild.result?:'SUCCESS'} - 
+                    Job \'${env.JOB_NAME}:${env.BUILD_NUMBER}\'", 
+                    to: '$EmailAddress'
+        }
+    }
     }
 }
